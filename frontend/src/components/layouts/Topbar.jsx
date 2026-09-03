@@ -35,24 +35,11 @@ export const Topbar = ({ onMenuClick }) => {
         </div>
       </div>
 
-      {/* Right section: Instant Role Switcher + Notifications + User Menu */}
+      {/* Right section: User Role Badge + Notifications + User Menu */}
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Interactive Role Switcher Pill for reviewers */}
-        <div className="hidden md:flex items-center bg-navy-900/90 border border-slate-800 rounded-xl p-1 gap-1">
-          <span className="px-2 text-[10px] uppercase font-mono text-slate-400 font-bold">Role:</span>
-          {['Admin', 'Team Leader', 'Employee'].map((role) => (
-            <button
-              key={role}
-              onClick={() => handleRoleChange(role)}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                user?.role === role
-                  ? 'bg-pulse-orange text-white shadow-glow-orange/40'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-navy-800'
-              }`}
-            >
-              {role === 'Admin' ? 'Admin' : role === 'Team Leader' ? 'Leader' : 'Employee'}
-            </button>
-          ))}
+        {/* User Active Role Badge */}
+        <div className="hidden md:flex items-center">
+          <RoleBadge role={user?.role} />
         </div>
 
         {/* Notifications Icon Dropdown */}

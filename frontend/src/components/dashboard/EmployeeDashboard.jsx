@@ -15,24 +15,36 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+import taskApi from '../../api/taskApi';
+
 export const EmployeeDashboard = ({ tasks }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
   // Tasks assigned to employee
-  const myTasks = tasks.slice(0, 3);
+  const myTasks = (tasks || []).slice(0, 3);
   const [activeTask, setActiveTask] = useState(myTasks[0]);
   const [progressVal, setProgressVal] = useState(activeTask?.progress || 60);
-  const [commentText, setCommentText] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [comments, setComments] = useState([
     { id: 1, author: 'Sarah Jenkins', role: 'Team Lead', text: 'Great progress on the CI/CD pipeline! Please double check GitHub Webhook secrets.', time: '2 hours ago' },
     { id: 2, author: user?.name || 'Alex Rivera', role: 'Developer', text: 'Staging build passed successfully. Testing production migration script now.', time: '45 mins ago' }
   ]);
+  const [commentText, setCommentText] = useState('');
 
-  const handleUpdateProgress = (e) => {
+  const handleUpdateProgress = async (e) => {
     e.preventDefault();
     if (activeTask) {
-      activeTask.progress = progressVal;
+      setIsSaving(true);
+      try {
+        await taskApi.updateTaskStatus(activeTask.id, activeTask.status, progressVal);
+        activeTask.progress = progressVal;
+        activeTask.progress_percent = progressVal;
+      } catch (err) {
+        console.error('Error updating progress:', err);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 

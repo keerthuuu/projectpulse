@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase.js';
+import Notification from '../models/Notification.js';
 
 export const notificationService = {
   createNotification: async ({ userId, message, type }) => {
@@ -8,33 +8,17 @@ export const notificationService = {
         type = 'risk_change';
       }
 
-      const { data, error } = await supabase
-        .from('notifications')
-        .insert([
-          {
-            user_id: userId,
-            message,
-            type,
-            is_read: false
-          }
-        ])
-        .select()
-        .single();
+      const notification = await Notification.create({
+        user_id: userId,
+        title: type === 'blocker' ? 'Task Blocked' : type === 'assignment' ? 'New Assignment' : 'Update',
+        message,
+        type,
+        is_read: false
+      });
 
-      if (error) {
-        console.warn('Supabase insert notification warning:', error.message);
-        return {
-          id: `notif-${Date.now()}`,
-          user_id: userId,
-          message,
-          type,
-          is_read: false,
-          created_at: new Date().toISOString()
-        };
-      }
-
-      return data;
+      return notification.toJSON();
     } catch (err) {
+      console.warn('MongoDB insert notification warning:', err.message);
       return {
         id: `notif-${Date.now()}`,
         user_id: userId,

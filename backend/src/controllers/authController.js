@@ -1,4 +1,9 @@
-import { supabase } from '../config/supabase.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+import env from '../config/env.js';
+
+const SALT_ROUNDS = 10;
 
 export const register = async (req, res, next) => {
   try {
@@ -13,62 +18,46 @@ export const register = async (req, res, next) => {
 
     const normalizedRole = role.toLowerCase().replace(' ', '_');
 
-    // 1. Create Supabase Auth user account
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: normalizedRole
-        }
-      }
-    });
-
-    if (authError) {
-      // Fallback for standalone demo mode
-      const mockId = `user-${Date.now()}`;
-      return res.status(201).json({
-        success: true,
-        data: {
-          token: 'mock-jwt-token-registered',
-          user: {
-            id: mockId,
-            email,
-            full_name: fullName,
-            role: normalizedRole,
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-          }
-        }
+    // 1. Check whether this email is already registered
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: 'An account with this email already exists.'
       });
     }
 
-    const userId = authData.user.id;
+    // 2. Hash the password and create the new user
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // 2. Create user profile in 'users' table
-    const { data: userProfile, error: profileError } = await supabase
-      .from('users')
-      .insert([
-        {
-          id: userId,
-          full_name: fullName,
-          email,
-          role: normalizedRole
-        }
-      ])
-      .select()
-      .single();
+    const newUser = await User.create({
+      full_name: fullName,
+      email: email.toLowerCase(),
+      role: normalizedRole,
+      password_hash: passwordHash
+    });
+
+    const userProfile = {
+      id: newUser._id.toString(),
+      full_name: newUser.full_name,
+      name: newUser.full_name,
+      email: newUser.email,
+      role: newUser.role,
+      created_at: newUser.created_at
+    };
+
+    // 3. Issue a JWT for this session
+    const token = jwt.sign(
+      { id: userProfile.id, email: userProfile.email, role: userProfile.role },
+      env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     return res.status(201).json({
       success: true,
       data: {
-        token: authData.session?.access_token || 'mock-jwt-token-xyz789',
-        user: userProfile || {
-          id: userId,
-          email,
-          full_name: fullName,
-          role: normalizedRole
-        }
+        token,
+        user: userProfile
       }
     });
   } catch (err) {
@@ -78,7 +67,7 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -87,49 +76,41 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // Attempt Supabase Auth login
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    // Mongoose .select('+password_hash') needed since toJSON transform strips it
+    const userRow = await User.findOne({ email: email.toLowerCase() }).select('+password_hash');
 
-    if (authError || !authData.user) {
-      // Standalone development fallback
-      const normalizedRole = (role || 'admin').toLowerCase().replace(' ', '_');
-      return res.status(200).json({
-        success: true,
-        data: {
-          token: 'demo-token',
-          user: {
-            id: 'user-001',
-            email,
-            name: email.split('@')[0] || 'Alex Rivera',
-            full_name: email.split('@')[0] || 'Alex Rivera',
-            role: normalizedRole === 'admin' ? 'Admin' : normalizedRole === 'team_leader' ? 'Team Leader' : 'Employee',
-            avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100'
-          }
-        }
+    if (!userRow || !userRow.password_hash) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password.'
       });
     }
 
-    // Fetch user profile from database
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
+    const passwordMatches = await bcrypt.compare(password, userRow.password_hash);
+    if (!passwordMatches) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password.'
+      });
+    }
+
+    const token = jwt.sign(
+      { id: userRow._id.toString(), email: userRow.email, role: userRow.role },
+      env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     return res.status(200).json({
       success: true,
       data: {
-        token: authData.session.access_token,
+        token,
         user: {
-          id: authData.user.id,
-          email: authData.user.email,
-          full_name: userProfile?.full_name || 'Alex Rivera',
-          name: userProfile?.full_name || 'Alex Rivera',
-          role: userProfile?.role || 'admin',
-          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100'
+          id: userRow._id.toString(),
+          email: userRow.email,
+          full_name: userRow.full_name,
+          name: userRow.full_name,
+          role: userRow.role,
+          avatar: userRow.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100'
         }
       }
     });
@@ -140,7 +121,6 @@ export const login = async (req, res, next) => {
 
 export const logout = async (req, res, next) => {
   try {
-    await supabase.auth.signOut();
     return res.status(200).json({
       success: true,
       message: 'Signed out successfully.'

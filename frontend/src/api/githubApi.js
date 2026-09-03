@@ -5,7 +5,7 @@ export const githubApi = {
   getActivity: async (repoName) => {
     try {
       const response = await apiClient.get('/github/activity', { params: { repo: repoName } });
-      return response.data;
+      return response.data?.data || response.data || MOCK_GITHUB_ACTIVITY;
     } catch (err) {
       return MOCK_GITHUB_ACTIVITY;
     }
@@ -14,7 +14,7 @@ export const githubApi = {
   syncGithub: async (repoName) => {
     try {
       const response = await apiClient.post('/github/sync', { repo: repoName });
-      return response.data;
+      return response.data?.data || response.data;
     } catch (err) {
       return {
         success: true,

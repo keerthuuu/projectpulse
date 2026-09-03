@@ -17,9 +17,9 @@ import {
 export const LeaderDashboard = ({ projects, tasks }) => {
   const navigate = useNavigate();
 
-  const assignedProjects = projects.slice(0, 2);
-  const activeTasks = tasks.filter(t => t.status !== 'COMPLETED');
-  const blockedTasks = tasks.filter(t => t.status === 'BLOCKED');
+  const assignedProjects = (projects || []).slice(0, 2);
+  const activeTasks = (tasks || []).filter(t => (t.status || '').toUpperCase().replace(/_/g, ' ') !== 'COMPLETED');
+  const blockedTasks = (tasks || []).filter(t => (t.status || '').toUpperCase() === 'BLOCKED');
 
   return (
     <div className="space-y-8">
@@ -98,9 +98,9 @@ export const LeaderDashboard = ({ projects, tasks }) => {
                 </div>
                 <p className="text-xs text-slate-300">{t.description}</p>
                 <div className="flex flex-wrap justify-between items-center text-[11px] pt-2 border-t border-rose-500/20 text-rose-300">
-                  <span>Assigned: <strong>{t.assignedTo}</strong></span>
+                  <span>Assigned: <strong>{t.assignedTo || 'Team Member'}</strong></span>
                   <span className="font-mono bg-rose-500/20 px-2 py-0.5 rounded">
-                    {t.dependencies[0] || 'Blocked by external dependency'}
+                    {(t.dependencies && t.dependencies[0]) || 'Blocked by external dependency'}
                   </span>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase.js';
+import Notification from '../models/Notification.js';
 
 const SEED_NOTIFS = [
   {
@@ -35,31 +35,31 @@ const SEED_NOTIFS = [
 
 export const getNotifications = async (req, res, next) => {
   try {
-    const userId = req.user?.id;
-    const { data: dbNotifs, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const notifications = await Notification.find().sort({ created_at: -1 });
 
-    if (error || !dbNotifs || dbNotifs.length === 0) {
+    if (notifications.length === 0) {
       return res.status(200).json({ success: true, data: SEED_NOTIFS });
     }
 
-    return res.status(200).json({ success: true, data: dbNotifs });
+    return res.status(200).json({ success: true, data: notifications.map(n => n.toJSON()) });
   } catch (err) {
-    next(err);
+    return res.status(200).json({ success: true, data: SEED_NOTIFS });
   }
 };
 
 export const markAsRead = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
 
-    const target = SEED_NOTIFS.find(n => n.id === id);
-    if (target) {
-      target.is_read = true;
-      target.read = true;
+    try {
+      await Notification.findByIdAndUpdate(id, { is_read: true });
+    } catch (e) {
+      // fallback for seed IDs
+      const target = SEED_NOTIFS.find(n => n.id === id);
+      if (target) {
+        target.is_read = true;
+        target.read = true;
+      }
     }
 
     return res.status(200).json({
@@ -73,7 +73,7 @@ export const markAsRead = async (req, res, next) => {
 
 export const markAllRead = async (req, res, next) => {
   try {
-    await supabase.from('notifications').update({ is_read: true }).eq('is_read', false);
+    await Notification.updateMany({ is_read: false }, { is_read: true });
     SEED_NOTIFS.forEach(n => {
       n.is_read = true;
       n.read = true;

@@ -5,17 +5,15 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('projectpulse_user');
-    return saved ? JSON.parse(saved) : {
-      id: 'user-001',
-      name: 'Alex Rivera',
-      email: 'alex.rivera@projectpulse.io',
-      role: 'Admin', // Default role: Admin
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100'
-    };
+    try {
+      const saved = localStorage.getItem('projectpulse_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
-  const [token, setToken] = useState(() => localStorage.getItem('projectpulse_token') || 'demo-token');
+  const [token, setToken] = useState(() => localStorage.getItem('projectpulse_token') || null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -26,10 +24,10 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  const login = async (email, password, role = 'Admin') => {
+  const login = async (email, password) => {
     setLoading(true);
     try {
-      const data = await authApi.login({ email, password, role });
+      const data = await authApi.login({ email, password });
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem('projectpulse_token', data.token);

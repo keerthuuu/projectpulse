@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase.js';
+import Project from '../models/Project.js';
 import { validateProjectInput } from '../utils/validation.js';
 
 // Sample fallback dataset for standalone demo mode
@@ -47,36 +47,39 @@ const SEED_PROJECTS = [
 
 export const getAllProjects = async (req, res, next) => {
   try {
-    const { data: dbProjects, error } = await supabase
-      .from('projects')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const projects = await Project.find().sort({ created_at: -1 });
 
-    if (error || !dbProjects || dbProjects.length === 0) {
+    if (projects.length === 0) {
       return res.status(200).json({
         success: true,
         data: SEED_PROJECTS
       });
     }
 
-    const mapped = dbProjects.map(p => ({
-      ...p,
-      riskStatus: (p.status || 'on_track').toUpperCase().replace('_', ' '),
-      progress: p.progress || 50,
-      expectedCompletion: p.deadline,
-      lastUpdated: 'Recently',
-      teamMembers: [
-        { name: 'Sarah Jenkins', role: 'Team Lead', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
-        { name: 'Alex Rivera', role: 'Fullstack Engineer', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' }
-      ]
-    }));
+    const mapped = projects.map(p => {
+      const obj = p.toJSON();
+      return {
+        ...obj,
+        riskStatus: (obj.status || 'on_track').toUpperCase().replace('_', ' '),
+        progress: obj.progress || 50,
+        expectedCompletion: obj.expectedCompletion || obj.deadline,
+        lastUpdated: 'Recently',
+        teamMembers: obj.teamMembers && obj.teamMembers.length > 0 ? obj.teamMembers : [
+          { name: 'Sarah Jenkins', role: 'Team Lead', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
+          { name: 'Alex Rivera', role: 'Fullstack Engineer', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' }
+        ]
+      };
+    });
 
     return res.status(200).json({
       success: true,
       data: mapped
     });
   } catch (err) {
-    next(err);
+    return res.status(200).json({
+      success: true,
+      data: SEED_PROJECTS
+    });
   }
 };
 
@@ -84,13 +87,15 @@ export const getProjectById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const { data: dbProject, error } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', id)
-      .single();
+    let dbProject = null;
+    try {
+      // Try MongoDB ObjectId first, then fallback seed
+      dbProject = await Project.findById(id);
+    } catch (e) {
+      // id might not be a valid ObjectId
+    }
 
-    if (error || !dbProject) {
+    if (!dbProject) {
       const fallback = SEED_PROJECTS.find(p => p.id === id) || SEED_PROJECTS[0];
       return res.status(200).json({
         success: true,
@@ -98,13 +103,14 @@ export const getProjectById = async (req, res, next) => {
       });
     }
 
+    const obj = dbProject.toJSON();
     const mapped = {
-      ...dbProject,
-      riskStatus: (dbProject.status || 'on_track').toUpperCase().replace('_', ' '),
-      progress: dbProject.progress || 65,
-      expectedCompletion: dbProject.deadline,
-      bufferDays: 5,
-      teamMembers: [
+      ...obj,
+      riskStatus: (obj.status || 'on_track').toUpperCase().replace('_', ' '),
+      progress: obj.progress || 65,
+      expectedCompletion: obj.expectedCompletion || obj.deadline,
+      bufferDays: obj.bufferDays || 5,
+      teamMembers: obj.teamMembers && obj.teamMembers.length > 0 ? obj.teamMembers : [
         { name: 'Sarah Jenkins', role: 'Team Lead', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
         { name: 'Alex Rivera', role: 'Fullstack Engineer', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100' }
       ]
@@ -115,7 +121,11 @@ export const getProjectById = async (req, res, next) => {
       data: mapped
     });
   } catch (err) {
-    next(err);
+    const fallback = SEED_PROJECTS.find(p => p.id === req.params.id) || SEED_PROJECTS[0];
+    return res.status(200).json({
+      success: true,
+      data: fallback
+    });
   }
 };
 
@@ -131,52 +141,26 @@ export const createProject = async (req, res, next) => {
       });
     }
 
-    const creatorId = req.user?.id && req.user.id.includes('-') ? req.user.id : null;
+    const creatorId = req.user?.id || null;
 
-    const { data: newProject, error } = await supabase
-      .from('projects')
-      .insert([
-        {
-          name,
-          description,
-          start_date,
-          deadline,
-          status: 'on_track',
-          created_by: creatorId
-        }
-      ])
-      .select()
-      .single();
+    const newProject = await Project.create({
+      name,
+      description,
+      start_date,
+      deadline,
+      status: 'on_track',
+      created_by: creatorId
+    });
 
-    if (error) {
-      const createdFallback = {
-        id: `proj-${Date.now()}`,
-        name,
-        description,
-        start_date,
-        deadline,
-        status: 'on_track',
-        riskStatus: 'ON TRACK',
-        progress: 0,
-        expectedCompletion: deadline,
-        bufferDays: 5,
-        teamMembers: [],
-        lastUpdated: 'Just now'
-      };
-      SEED_PROJECTS.unshift(createdFallback);
-      return res.status(201).json({
-        success: true,
-        data: createdFallback
-      });
-    }
+    const obj = newProject.toJSON();
 
     return res.status(201).json({
       success: true,
       data: {
-        ...newProject,
+        ...obj,
         riskStatus: 'ON TRACK',
         progress: 0,
-        expectedCompletion: newProject.deadline,
+        expectedCompletion: obj.deadline,
         lastUpdated: 'Just now',
         teamMembers: []
       }
@@ -191,24 +175,37 @@ export const updateProject = async (req, res, next) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const { data: updated, error } = await supabase
-      .from('projects')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    const allowedFields = ['name', 'description', 'start_date', 'deadline', 'status'];
+    const filtered = {};
+    for (const key of allowedFields) {
+      if (updates[key] !== undefined) {
+        filtered[key] = updates[key];
+      }
+    }
 
-    if (error) {
+    if (Object.keys(filtered).length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid fields provided to update.' });
+    }
+
+    let updated = null;
+    try {
+      updated = await Project.findByIdAndUpdate(id, filtered, { new: true });
+    } catch (e) {
+      // id might not be a valid ObjectId
+    }
+
+    if (!updated) {
       const idx = SEED_PROJECTS.findIndex(p => p.id === id);
       if (idx !== -1) {
-        SEED_PROJECTS[idx] = { ...SEED_PROJECTS[idx], ...updates };
+        SEED_PROJECTS[idx] = { ...SEED_PROJECTS[idx], ...filtered };
         return res.status(200).json({ success: true, data: SEED_PROJECTS[idx] });
       }
+      return res.status(404).json({ success: false, message: 'Project not found.' });
     }
 
     return res.status(200).json({
       success: true,
-      data: updated
+      data: updated.toJSON()
     });
   } catch (err) {
     next(err);
@@ -218,7 +215,11 @@ export const updateProject = async (req, res, next) => {
 export const deleteProject = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await supabase.from('projects').delete().eq('id', id);
+    try {
+      await Project.findByIdAndDelete(id);
+    } catch (e) {
+      // ignore invalid ObjectId
+    }
 
     return res.status(200).json({
       success: true,
@@ -231,18 +232,26 @@ export const deleteProject = async (req, res, next) => {
 
 export const addProjectMember = async (req, res, next) => {
   try {
-    const { id: project_id } = req.params;
-    const { user_id, role_in_project = 'member' } = req.body;
+    const { id } = req.params;
+    const { user_id, role_in_project = 'member', name = 'Team Member' } = req.body;
 
-    const { data, error } = await supabase
-      .from('project_members')
-      .insert([{ project_id, user_id, role_in_project }])
-      .select()
-      .single();
+    let project = null;
+    try {
+      project = await Project.findById(id);
+    } catch (e) { /* ignore */ }
+
+    if (project) {
+      project.teamMembers.push({
+        name,
+        role: role_in_project,
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100'
+      });
+      await project.save();
+    }
 
     return res.status(201).json({
       success: true,
-      data: data || { project_id, user_id, role_in_project }
+      data: { project_id: id, user_id, role_in_project }
     });
   } catch (err) {
     next(err);
@@ -251,11 +260,17 @@ export const addProjectMember = async (req, res, next) => {
 
 export const removeProjectMember = async (req, res, next) => {
   try {
-    const { id: project_id, userId: user_id } = req.params;
-    await supabase
-      .from('project_members')
-      .delete()
-      .match({ project_id, user_id });
+    const { id, userId } = req.params;
+
+    let project = null;
+    try {
+      project = await Project.findById(id);
+    } catch (e) { /* ignore */ }
+
+    if (project) {
+      project.teamMembers = project.teamMembers.filter((_, i) => i.toString() !== userId);
+      await project.save();
+    }
 
     return res.status(200).json({
       success: true,
@@ -268,17 +283,21 @@ export const removeProjectMember = async (req, res, next) => {
 
 export const getProjectMembers = async (req, res, next) => {
   try {
-    const { id: project_id } = req.params;
-    const { data: members } = await supabase
-      .from('project_members')
-      .select('*, users(*)')
-      .eq('project_id', project_id);
+    const { id } = req.params;
+
+    let project = null;
+    try {
+      project = await Project.findById(id);
+    } catch (e) { /* ignore */ }
 
     return res.status(200).json({
       success: true,
-      data: members || []
+      data: project?.teamMembers || []
     });
   } catch (err) {
-    next(err);
+    return res.status(200).json({
+      success: true,
+      data: []
+    });
   }
 };

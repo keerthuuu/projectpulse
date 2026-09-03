@@ -3,7 +3,8 @@ import { PriorityBadge } from '../ui/Badge';
 import { Clock, MessageSquare, AlertOctagon, ArrowRightLeft } from 'lucide-react';
 
 export const TaskCard = ({ task, onStatusChange }) => {
-  const isBlocked = task.status === 'BLOCKED';
+  const normStatus = (task.status || '').toUpperCase().replace(/_/g, ' ');
+  const isBlocked = normStatus === 'BLOCKED';
 
   return (
     <div
@@ -16,7 +17,7 @@ export const TaskCard = ({ task, onStatusChange }) => {
       {/* Header: Priority + Project Name */}
       <div className="flex justify-between items-center text-xs">
         <span className="text-[10px] font-mono text-slate-400 font-bold uppercase truncate max-w-[140px]">
-          {task.projectName}
+          {task.projectName || 'ProjectPulse'}
         </span>
         <PriorityBadge priority={task.priority} />
       </div>
@@ -39,12 +40,12 @@ export const TaskCard = ({ task, onStatusChange }) => {
       <div className="space-y-1">
         <div className="flex justify-between items-center text-[11px]">
           <span className="text-slate-400 font-medium">Task Progress</span>
-          <span className="text-pulse-orange font-mono font-bold">{task.progress}%</span>
+          <span className="text-pulse-orange font-mono font-bold">{task.progress || task.progress_percent || 0}%</span>
         </div>
         <div className="w-full h-1.5 bg-navy-950 rounded-full overflow-hidden border border-slate-800">
           <div
             className="h-full bg-gradient-to-r from-pulse-orange to-amber-400 transition-all duration-300"
-            style={{ width: `${task.progress}%` }}
+            style={{ width: `${task.progress || task.progress_percent || 0}%` }}
           />
         </div>
       </div>
@@ -55,14 +56,14 @@ export const TaskCard = ({ task, onStatusChange }) => {
           {task.assignedAvatar ? (
             <img
               src={task.assignedAvatar}
-              alt={task.assignedTo}
-              title={task.assignedTo}
+              alt={task.assignedTo || 'Member'}
+              title={task.assignedTo || 'Member'}
               className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-700"
             />
           ) : (
-            <span className="text-slate-400 font-medium">{task.assignedTo}</span>
+            <span className="text-slate-400 font-medium">{task.assignedTo || 'Member'}</span>
           )}
-          <span className="text-slate-300 font-medium text-[11px]">{task.assignedTo?.split(' ')[0]}</span>
+          <span className="text-slate-300 font-medium text-[11px]">{task.assignedTo?.split(' ')[0] || 'Member'}</span>
         </div>
 
         <div className="flex items-center gap-3 text-slate-400">
@@ -72,7 +73,7 @@ export const TaskCard = ({ task, onStatusChange }) => {
           </span>
           <span className="flex items-center gap-1 font-mono text-[10px]">
             <Clock className="w-3 h-3 text-slate-500" />
-            <span>{task.plannedEnd?.slice(5)}</span>
+            <span>{task.plannedEnd?.slice(5) || task.planned_end?.slice(5) || 'Sprint'}</span>
           </span>
         </div>
       </div>
@@ -81,7 +82,7 @@ export const TaskCard = ({ task, onStatusChange }) => {
       <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
         <span className="text-slate-500 text-[10px]">Move status:</span>
         <div className="flex gap-1">
-          {task.status !== 'NOT STARTED' && (
+          {normStatus !== 'NOT STARTED' && (
             <button
               onClick={() => onStatusChange(task.id, 'NOT STARTED', 0)}
               className="px-2 py-0.5 rounded bg-navy-950 text-slate-400 hover:text-white border border-slate-800"
@@ -89,7 +90,7 @@ export const TaskCard = ({ task, onStatusChange }) => {
               To Start
             </button>
           )}
-          {task.status !== 'IN PROGRESS' && (
+          {normStatus !== 'IN PROGRESS' && (
             <button
               onClick={() => onStatusChange(task.id, 'IN PROGRESS', 50)}
               className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30"
@@ -97,15 +98,15 @@ export const TaskCard = ({ task, onStatusChange }) => {
               In Prog
             </button>
           )}
-          {task.status !== 'BLOCKED' && (
+          {normStatus !== 'BLOCKED' && (
             <button
-              onClick={() => onStatusChange(task.id, 'BLOCKED', task.progress)}
+              onClick={() => onStatusChange(task.id, 'BLOCKED', task.progress || task.progress_percent || 0)}
               className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30"
             >
               Block
             </button>
           )}
-          {task.status !== 'COMPLETED' && (
+          {normStatus !== 'COMPLETED' && (
             <button
               onClick={() => onStatusChange(task.id, 'COMPLETED', 100)}
               className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30"

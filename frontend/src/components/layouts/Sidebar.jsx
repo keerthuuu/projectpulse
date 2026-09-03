@@ -74,10 +74,24 @@ export const Sidebar = ({ isOpen, onClose }) => {
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold text-white truncate">{user?.name || 'Alex Rivera'}</div>
             <div className="flex items-center gap-1 text-[11px] text-pulse-orange font-semibold">
-              {user?.role === 'Admin' && <ShieldCheck className="w-3 h-3" />}
-              {user?.role === 'Team Leader' && <UserCheck className="w-3 h-3" />}
-              {user?.role === 'Employee' && <Code className="w-3 h-3" />}
-              <span>{user?.role || 'Admin'} View</span>
+              {((user?.role || 'admin').toLowerCase().replace(' ', '_') === 'admin') && (
+                <>
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Admin View</span>
+                </>
+              )}
+              {((user?.role || '').toLowerCase().replace(' ', '_') === 'team_leader') && (
+                <>
+                  <UserCheck className="w-3 h-3" />
+                  <span>Team Leader View</span>
+                </>
+              )}
+              {((user?.role || '').toLowerCase().replace(' ', '_') === 'employee') && (
+                <>
+                  <Code className="w-3 h-3" />
+                  <span>Employee View</span>
+                </>
+              )}
             </div>
           </div>
         </div>

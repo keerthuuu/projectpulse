@@ -8,15 +8,20 @@ import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 
 export const LoginPage = () => {
-  const [email, setEmail] = useState('alex.rivera@projectpulse.io');
-  const [password, setPassword] = useState('password123');
-  const [role, setRole] = useState('Admin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleFillDemo = (demoEmail, demoPass) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,10 +34,11 @@ export const LoginPage = () => {
 
     setIsSubmitting(true);
     try {
-      await login(email, password, role);
+      await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid credentials. Please check your login details.');
+      const msg = err.response?.data?.message || 'Invalid email or password. Please check your credentials.';
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -63,8 +69,8 @@ export const LoginPage = () => {
             </div>
 
             <div className="p-4 rounded-2xl bg-navy-950/80 border border-slate-800 text-xs text-slate-400 space-y-1">
-              <span className="font-mono text-pulse-orange font-bold">LIVE TELEMETRY</span>
-              <p>Predicting deadlines for over 1,400+ active enterprise sprints.</p>
+              <span className="font-mono text-pulse-orange font-bold">LIVE DATABASE AUTH</span>
+              <p>Sign in using registered PostgreSQL database accounts.</p>
             </div>
           </div>
 
@@ -75,7 +81,7 @@ export const LoginPage = () => {
                 <Logo size="md" />
               </div>
               <h2 className="text-2xl font-extrabold text-white">Welcome Back</h2>
-              <p className="text-xs text-slate-400 mt-1">Sign in to access your ProjectPulse dashboard</p>
+              <p className="text-xs text-slate-400 mt-1">Sign in with your registered email and password</p>
             </div>
 
             {error && (
@@ -85,27 +91,35 @@ export const LoginPage = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Select Role for Demo */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300">Sign in as Role:</label>
-                <div className="grid grid-cols-3 gap-2 p-1 bg-navy-900 rounded-xl border border-slate-800">
-                  {['Admin', 'Team Leader', 'Employee'].map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRole(r)}
-                      className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                        role === r
-                          ? 'bg-pulse-orange text-white shadow-glow-orange/30'
-                          : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      {r === 'Admin' ? 'Admin' : r === 'Team Leader' ? 'Leader' : 'Employee'}
-                    </button>
-                  ))}
-                </div>
+            {/* Quick Demo Accounts Helper */}
+            <div className="mb-5 p-3 rounded-xl bg-navy-900/80 border border-slate-800 space-y-2">
+              <span className="text-[11px] text-slate-400 font-semibold block">Quick-fill Test Database Accounts:</span>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleFillDemo('alex.rivera@projectpulse.io', 'password123')}
+                  className="py-1 px-2 rounded-lg bg-navy-950 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 font-medium text-center"
+                >
+                  Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFillDemo('sarah.j@projectpulse.io', 'password123')}
+                  className="py-1 px-2 rounded-lg bg-navy-950 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 font-medium text-center"
+                >
+                  Leader
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFillDemo('david.c@projectpulse.io', 'password123')}
+                  className="py-1 px-2 rounded-lg bg-navy-950 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 font-medium text-center"
+                >
+                  Employee
+                </button>
               </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
 
               {/* Email */}
               <div className="space-y-1">

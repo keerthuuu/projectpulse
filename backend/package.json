@@ -1,7 +1,7 @@
 {
   "name": "projectpulse-backend",
   "version": "1.0.0",
-  "description": "ProjectPulse Node.js Express REST API backend with Supabase PostgreSQL and Supabase Auth integration",
+  "description": "ProjectPulse Node.js Express REST API backend with self-hosted PostgreSQL (Render) and JWT-based Auth",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -10,10 +10,13 @@
     "seed": "node seed.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.4",
+    "pg": "^8.23.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   },

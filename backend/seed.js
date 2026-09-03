@@ -1,38 +1,39 @@
-import { supabase } from './src/config/supabase.js';
+import bcrypt from 'bcryptjs';
+import { pool, query } from './src/config/db.js';
 import env from './src/config/env.js';
 
 async function seedDatabase() {
   console.log('=================================================');
   console.log('🌱 ProjectPulse Database Seeding Tool');
-  console.log(`📡 Connecting to Supabase URL: "${env.SUPABASE_URL}"`);
+  console.log(`📡 Connecting to: "${env.DATABASE_URL ? env.DATABASE_URL.split('@')[1] || 'configured host' : 'NOT SET'}"`);
   console.log('=================================================');
 
-  if (env.SUPABASE_URL.includes('demo-projectpulse') || env.SUPABASE_URL.includes('your-supabase-project')) {
-    console.log('⚠️ NOTICE: You are currently using placeholder Supabase credentials in backend/.env.');
-    console.log('👉 Please replace SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY in backend/.env with your real keys from https://supabase.com (Project Settings -> API).');
+  if (!env.DATABASE_URL) {
+    console.log('⚠️ NOTICE: DATABASE_URL is not set in backend/.env.');
+    console.log('👉 Please add your Render PostgreSQL connection string to backend/.env as DATABASE_URL=...');
     console.log('=================================================');
     return;
   }
 
   try {
-    // 1. Seed Users
+    // 1. Seed Users (default password for all seed accounts: "password123")
+    const defaultPasswordHash = await bcrypt.hash('password123', 10);
+
     const users = [
       { id: 'a1b2c3d4-0001-4000-8000-000000000001', full_name: 'Alex Rivera', email: 'alex.rivera@projectpulse.io', role: 'admin' },
       { id: 'a1b2c3d4-0002-4000-8000-000000000002', full_name: 'Sarah Jenkins', email: 'sarah.j@projectpulse.io', role: 'team_leader' },
       { id: 'a1b2c3d4-0003-4000-8000-000000000003', full_name: 'David Chen', email: 'david.c@projectpulse.io', role: 'employee' }
     ];
 
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .upsert(users, { onConflict: 'email' });
-
-    if (userError) {
-      console.error('❌ Users Table Seed Error:', userError.message || userError);
-      if (userError.details) console.error('Details:', userError.details);
-      if (userError.hint) console.error('Hint:', userError.hint);
-    } else {
-      console.log('✅ Users table seeded successfully (3 test accounts created).');
+    for (const u of users) {
+      await query(
+        `INSERT INTO users (id, full_name, email, role, password_hash)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role`,
+        [u.id, u.full_name, u.email, u.role, defaultPasswordHash]
+      );
     }
+    console.log('✅ Users table seeded successfully (3 test accounts created, password: password123).');
 
     // 2. Seed Projects
     const projects = [
@@ -56,15 +57,15 @@ async function seedDatabase() {
       }
     ];
 
-    const { data: projData, error: projError } = await supabase
-      .from('projects')
-      .upsert(projects, { onConflict: 'id' });
-
-    if (projError) {
-      console.error('❌ Projects Table Seed Error:', projError.message || projError);
-    } else {
-      console.log('✅ Projects table seeded successfully (2 active project sprints created).');
+    for (const p of projects) {
+      await query(
+        `INSERT INTO projects (id, name, description, start_date, deadline, status, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status`,
+        [p.id, p.name, p.description, p.start_date, p.deadline, p.status, p.created_by]
+      );
     }
+    console.log('✅ Projects table seeded successfully (2 active project sprints created).');
 
     // 3. Seed Tasks
     const tasks = [
@@ -94,21 +95,23 @@ async function seedDatabase() {
       }
     ];
 
-    const { data: taskData, error: taskError } = await supabase
-      .from('tasks')
-      .upsert(tasks, { onConflict: 'id' });
-
-    if (taskError) {
-      console.error('❌ Tasks Table Seed Error:', taskError.message || taskError);
-    } else {
-      console.log('✅ Tasks table seeded successfully.');
+    for (const t of tasks) {
+      await query(
+        `INSERT INTO tasks (id, project_id, title, description, assigned_to, status, progress_percent, priority, planned_start, planned_end)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, progress_percent = EXCLUDED.progress_percent`,
+        [t.id, t.project_id, t.title, t.description, t.assigned_to, t.status, t.progress_percent, t.priority, t.planned_start, t.planned_end]
+      );
     }
+    console.log('✅ Tasks table seeded successfully.');
 
     console.log('=================================================');
     console.log('🎉 Seed execution finished!');
     console.log('=================================================');
   } catch (err) {
-    console.error('Unexpected Seed Error:', err);
+    console.error('❌ Unexpected Seed Error:', err.message || err);
+  } finally {
+    await pool.end();
   }
 }
 

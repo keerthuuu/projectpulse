@@ -13,13 +13,9 @@ export const apiClient = axios.create({
 // Attach Authorization Bearer token from localStorage
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('projectpulse_token') || 'demo-token';
-    const user = JSON.parse(localStorage.getItem('projectpulse_user') || '{}');
+    const token = localStorage.getItem('projectpulse_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    }
-    if (user && user.role) {
-      config.headers['X-Demo-Role'] = user.role;
     }
     return config;
   },

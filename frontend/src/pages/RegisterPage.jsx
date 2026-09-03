@@ -38,7 +38,8 @@ export const RegisterPage = () => {
       await register({ fullName, email, password, role });
       navigate('/dashboard');
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      const msg = err.response?.data?.message || 'Registration failed. An account with this email may already exist.';
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }

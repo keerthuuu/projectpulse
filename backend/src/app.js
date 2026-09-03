@@ -46,6 +46,35 @@ app.use(express.urlencoded({ extended: true }));
 // Interactive Swagger OpenAPI Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Base root and API root information endpoint
+const getApiIndex = (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: 'ProjectPulse REST API is running successfully',
+    version: '1.0.0',
+    documentation: `http://localhost:${env.PORT || 5000}/api-docs`,
+    endpoints: {
+      health: '/api/health',
+      auth: {
+        login: 'POST /api/auth/login',
+        register: 'POST /api/auth/register',
+        me: 'GET /api/auth/me'
+      },
+      projects: '/api/projects',
+      tasks: '/api/tasks',
+      predictions: '/api/prediction',
+      notifications: '/api/notifications',
+      github: '/api/github',
+      dashboard: '/api/dashboard',
+      comments: '/api/comments',
+      reports: '/api/reports'
+    }
+  });
+};
+
+app.get('/', getApiIndex);
+app.get('/api', getApiIndex);
+
 // Register REST API Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);

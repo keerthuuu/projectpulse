@@ -34,11 +34,13 @@ export const KanbanBoard = ({ tasks, onStatusChange }) => {
     },
   ];
 
+  const normalizeStatus = (s) => (s || '').toUpperCase().replace(/_/g, ' ');
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
       {columns.map((col) => {
         const Icon = col.icon;
-        const colTasks = tasks.filter((t) => t.status === col.id);
+        const colTasks = (tasks || []).filter((t) => normalizeStatus(t.status) === col.id);
 
         return (
           <div

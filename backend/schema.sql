@@ -1,14 +1,15 @@
--- ProjectPulse Complete PostgreSQL Schema for Supabase Integration
+-- ProjectPulse Complete PostgreSQL Schema (Self-Hosted on Render)
 
 -- Enable UUID extension if not enabled
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. USERS TABLE
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'team_leader', 'employee')),
+    password_hash TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

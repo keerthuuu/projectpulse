@@ -5,7 +5,7 @@ export const notificationApi = {
   getNotifications: async () => {
     try {
       const response = await apiClient.get('/notifications');
-      return response.data;
+      return response.data?.data || (Array.isArray(response.data) ? response.data : MOCK_NOTIFICATIONS);
     } catch (err) {
       return MOCK_NOTIFICATIONS;
     }
@@ -14,7 +14,7 @@ export const notificationApi = {
   markAsRead: async (id) => {
     try {
       const response = await apiClient.patch(`/notifications/${id}/read`);
-      return response.data;
+      return response.data?.data || response.data;
     } catch (err) {
       const notif = MOCK_NOTIFICATIONS.find(n => n.id === id);
       if (notif) notif.read = true;

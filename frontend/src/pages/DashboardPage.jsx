@@ -45,12 +45,12 @@ export const DashboardPage = () => {
     return <DashboardSkeleton />;
   }
 
-  // Render role-specific dashboard based on user.role
-  const currentRole = user?.role || 'Admin';
+  // Render role-specific dashboard strictly matching database user.role
+  const normRole = (user?.role || 'admin').toLowerCase().replace(' ', '_');
 
   return (
     <div className="space-y-6">
-      {currentRole === 'Admin' && (
+      {normRole === 'admin' && (
         <AdminDashboard
           projects={projects}
           predictions={predictions}
@@ -58,14 +58,14 @@ export const DashboardPage = () => {
         />
       )}
 
-      {currentRole === 'Team Leader' && (
+      {normRole === 'team_leader' && (
         <LeaderDashboard
           projects={projects}
           tasks={tasks}
         />
       )}
 
-      {currentRole === 'Employee' && (
+      {normRole === 'employee' && (
         <EmployeeDashboard
           tasks={tasks}
         />

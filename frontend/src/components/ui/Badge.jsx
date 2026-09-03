@@ -48,26 +48,27 @@ export const RiskBadge = ({ status = 'ON TRACK', size = 'md' }) => {
   );
 };
 
-export const RoleBadge = ({ role = 'Admin' }) => {
+export const RoleBadge = ({ role = 'admin' }) => {
+  const normRole = (role || 'admin').toLowerCase().replace(' ', '_');
   const roleConfigs = {
-    Admin: {
+    admin: {
       label: 'Admin / Manager',
       icon: ShieldCheck,
       color: 'bg-purple-500/15 border-purple-500/40 text-purple-300',
     },
-    'Team Leader': {
+    team_leader: {
       label: 'Team Leader',
       icon: UserCheck,
       color: 'bg-blue-500/15 border-blue-500/40 text-blue-300',
     },
-    Employee: {
+    employee: {
       label: 'Employee',
       icon: Code,
       color: 'bg-teal-500/15 border-teal-500/40 text-teal-300',
     },
   };
 
-  const config = roleConfigs[role] || roleConfigs['Admin'];
+  const config = roleConfigs[normRole] || roleConfigs['admin'];
   const Icon = config.icon;
 
   return (
