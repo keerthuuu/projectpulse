@@ -77,17 +77,24 @@ const getApiIndex = (req, res) => {
 app.get('/', getApiIndex);
 app.get('/api', getApiIndex);
 
-// Register REST API Routes
-app.use('/api/health', healthRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/github', githubRoutes);
-app.use('/api/prediction', predictionRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/comments', commentRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+// Register REST API Routes under both /api and root paths
+const routes = [
+  ['/health', healthRoutes],
+  ['/auth', authRoutes],
+  ['/projects', projectRoutes],
+  ['/tasks', taskRoutes],
+  ['/github', githubRoutes],
+  ['/prediction', predictionRoutes],
+  ['/notifications', notificationRoutes],
+  ['/comments', commentRoutes],
+  ['/reports', reportRoutes],
+  ['/dashboard', dashboardRoutes],
+];
+
+routes.forEach(([path, router]) => {
+  app.use(`/api${path}`, router);
+  app.use(path, router);
+});
 
 // Global Error & 404 Handlers
 app.use(notFoundHandler);

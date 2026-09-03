@@ -12,8 +12,8 @@ export const env = {
   PORT: process.env.PORT || 5000,
   FRONTEND_URL: (process.env.FRONTEND_URL || 'http://localhost:5173').trim(),
   DATABASE_URL: (process.env.DATABASE_URL || '').trim(),
-  MONGODB_URI: (process.env.MONGODB_URI || '').trim(),
-  JWT_SECRET: (process.env.JWT_SECRET || 'dev-only-insecure-secret-change-me').trim(),
+  MONGODB_URI: (process.env.MONGODB_URI || 'mongodb+srv://keerthana230406_db_user:z5aVO7yDGAGHutzc@cluster0.mzgrlrl.mongodb.net/projectpulse?retryWrites=true&w=majority&appName=Cluster0').trim(),
+  JWT_SECRET: (process.env.JWT_SECRET || 'kX9mP2vL8qR5tY3wZ7nB4jC6hF1sA0dE').trim(),
 };
 
 export default env;
