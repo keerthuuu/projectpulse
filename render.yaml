@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: projectpulse-api
+    env: node
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://projectpluse12.netlify.app
+      - key: PORT
+        value: 5000
