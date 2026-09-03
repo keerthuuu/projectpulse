@@ -77,6 +77,35 @@ const getApiIndex = (req, res) => {
 app.get('/', getApiIndex);
 app.get('/api', getApiIndex);
 
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const mongoose = (await import('mongoose')).default;
+    const state = mongoose.connection.readyState;
+    const maskedUri = env.MONGODB_URI ? env.MONGODB_URI.replace(/:([^@]+)@/, ':****@') : 'EMPTY_URI';
+    
+    if (state !== 1) {
+      console.log('Manual reconnect triggered via /test-db...');
+      await mongoose.connect(env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+    }
+    
+    return res.json({
+      success: true,
+      message: 'MongoDB Atlas is CONNECTED!',
+      readyState: mongoose.connection.readyState,
+      uri: maskedUri,
+      dbName: mongoose.connection.name
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: 'MongoDB Atlas connection failed',
+      error: err.message,
+      code: err.code,
+      reason: err.reason ? String(err.reason) : null
+    });
+  }
+});
+
 // Register REST API Routes under both /api and root paths
 const routes = [
   ['/health', healthRoutes],

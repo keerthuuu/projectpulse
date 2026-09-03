@@ -9,7 +9,11 @@ export const connectMongoDB = async () => {
   }
 
   try {
-    const conn = await mongoose.connect(uri);
+    console.log('Connecting to MongoDB Atlas...');
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+    });
     console.log('=================================================');
     console.log(`🍃 MongoDB Atlas Connected: ${conn.connection.host}`);
     console.log(`🗄️ Database: ${conn.connection.name}`);
